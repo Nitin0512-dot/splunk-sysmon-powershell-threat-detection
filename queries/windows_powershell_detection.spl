@@ -1,0 +1,18 @@
+index="main" sourcetype="sysmon"
+| rex "<EventID>(?<EventID>\d+)</EventID>"
+| rex "<Data Name='Image'>(?<Image>[^<]+)</Data>"
+| rex "<Data Name='CommandLine'>(?<CommandLine>[^<]+)</Data>"
+| rex "<Data Name='ParentImage'>(?<ParentImage>[^<]+)</Data>"
+| rex "<Data Name='ProcessGuid'>(?<ProcessGuid>[^<]+)</Data>"
+| search EventID=1 Image="*\powershell.exe"
+| eval suspicious_indicator=case(
+    match(CommandLine,"(?i)-enc(odedcommand)?"),"Encoded Command",
+    match(CommandLine,"(?i)-nop|-noprofile"),"No Profile",
+    match(CommandLine,"(?i)-w(indowstyle)?\s+hidden"),"Hidden Window",
+    match(CommandLine,"(?i)executionpolicy\s+bypass"),"Execution Policy Bypass",
+    match(CommandLine,"(?i)IEX|Invoke-Expression"),"PowerShell Execution",
+    match(CommandLine,"(?i)DownloadString|Invoke-WebRequest|Net.WebClient"),"Download Activity",
+    true(),"Other"
+)
+| search suspicious_indicator!="Other"
+| table _time ParentImage Image ProcessGuid suspicious_indicator CommandLine
