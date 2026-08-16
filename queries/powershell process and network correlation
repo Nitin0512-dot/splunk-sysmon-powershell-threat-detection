@@ -1,0 +1,25 @@
+index="main" sourcetype="sysmon"
+| rex "<EventID>(?<EventID>\d+)</EventID>"
+| rex "<Data Name='ProcessGuid'>(?<ProcessGuid>[^<]+)</Data>"
+| rex "<Data Name='Image'>(?<Image>[^<]+)</Data>"
+| rex "<Data Name='CommandLine'>(?<CommandLine>[^<]+)</Data>"
+| rex "<Data Name='SourceIp'>(?<SourceIp>[^<]+)</Data>"
+| rex "<Data Name='SourcePort'>(?<SourcePort>[^<]+)</Data>"
+| rex "<Data Name='DestinationIp'>(?<DestinationIp>[^<]+)</Data>"
+| rex "<Data Name='DestinationPort'>(?<DestinationPort>[^<]+)</Data>"
+| rex "<Data Name='DestinationHostname'>(?<DestinationHostname>[^<]+)</Data>"
+| rex "<Data Name='Protocol'>(?<Protocol>[^<]+)</Data>"
+| search (EventID=1 OR EventID=3) Image="\*powershell.exe"
+| stats
+    values(EventID) as EventIDs
+    values(Image) as Image
+    values(CommandLine) as CommandLine
+    values(SourceIp) as SourceIP
+    values(SourcePort) as SourcePort
+    values(DestinationIp) as DestinationIP
+    values(DestinationPort) as DestinationPort
+    values(DestinationHostname) as DestinationHostname
+    values(Protocol) as Protocol
+    by ProcessGuid
+| where mvfind(EventIDs,"1")>=0 AND mvfind(EventIDs,"3")>=0
+| table ProcessGuid EventIDs Image SourceIP SourcePort DestinationIP DestinationPort DestinationHostname CommandLine protocol
